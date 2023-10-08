@@ -9,6 +9,7 @@
 # useful for handling different item types with a single interface
 from itemadapter import ItemAdapter
 import psycopg2
+import logging
 
 
 class DataCrawlerPipeline:
@@ -48,6 +49,7 @@ class DataCrawlerPipeline:
             return data
         except Exception as e:
             print(e)
+            logging.error(f"Error in pipeline: {e}")
 
             
     def close_spider(self, spider):

@@ -1,6 +1,10 @@
 import os
+import pandas as pd
+from io import StringIO
 
-# List of symbols you want to scrape
+url = "https://storage.googleapis.com/symbol-config/tw_industry.json"
+
+
 symbols = ["1215", "3293"]  # Add or import the list of symbols you want to scrape
 year = 2023
 quarter = 1

@@ -30,30 +30,41 @@ class get_financial_ratio(scrapy.Spider):
             yield scrapy.Request(self.url, self.parse)
 
     def parse(self, response, **kwargs):
-        dfs = pd.read_html(StringIO(response.text))
-        df = dfs[0].iloc[1:,:]
-        df.columns = ['code', 'name', 'revenue', 'gross_margin', 'operating_margin', 'ebt_margin', 'net_income_margin']
-        # columns = ['公司代號','毛利率(%) (營業毛利)/ (營業收入)','營業利益率(%) (營業利益)/ (營業收入)', '稅前純益率(%) (稅前純益)/ (營業收入)', '稅後純益率(%) (稅後純益)/ (營業收入)']
-        columns = ['code', 'gross_margin', 'operating_margin', 'ebt_margin', 'net_income_margin']
-        df = df[columns]
-        df = df[df['code']!='公司代號']
+        try:
+            dfs = pd.read_html(StringIO(response.text))
+            df = dfs[0].iloc[1:,:]
+            df.columns = ['code', 'name', 'revenue', 'gross_margin', 'operating_margin', 'ebt_margin', 'net_income_margin']
+            columns = ['code', 'gross_margin', 'operating_margin', 'ebt_margin', 'net_income_margin']
+            df = df[columns]
+            df = df[df['code']!='公司代號']
 
-        value = df.to_dict('records')
-        items = UniformCrawlerItem()
-        items['date'] = f"{self.year}-Q{self.quarter}"
-        items['parse_date'] = datetime.date.today()
-        items['table'] = 'fundamental_features'
-        items['status'] = 'success' if response.status == 200 else 'error'
-        items['items'] = list()
-
-        for data in value:
-            val = FundamentalCrawlerItem()
-            for k,v in data.items():
-                val[k] = v
-            items['items'].append(dict(val))
+            value = df.to_dict('records')
         
-        yield dict(items)
+            
+            items = UniformCrawlerItem()
+            items['date'] = f"{self.year}-Q{self.quarter}"
+            items['parse_date'] = datetime.date.today()
+            items['table'] = 'fundamental_features'
+            items['status'] = 'success' if response.status == 200 else 'error'
+            items['items'] = list()
 
+            for data in value:
+                val = FundamentalCrawlerItem()
+                for k,v in data.items():
+                    val[k] = v
+                items['items'].append(dict(val))
+            
+            yield dict(items)
+
+        except Exception as e:
+            logging.error(f"Error while parsing response for symbol {self.symbol}, year {self.year}, quarter {self.quarter}: {e}")
+            items = UniformCrawlerItem()
+            items['date'] = f"{self.year}-Q{self.quarter}"
+            items['parse_date'] = datetime.date.today()
+            items['table'] = 'financial_statement'
+            items['status'] = 'error'
+            items['items'] = []
+            yield dict(items)
 
 
     

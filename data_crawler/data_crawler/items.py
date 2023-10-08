@@ -26,9 +26,33 @@ class RevenueCrawlerItem(scrapy.Item):
     cum_yoy = scrapy.Field()
     note = scrapy.Field()
 
+class RevenueInstantCrawlerItem(scrapy.Item):
+    date = scrapy.Field()
+    symbol = scrapy.Field()
+    revenue = scrapy.Field()
+    last_year_revenue = scrapy.Field()
+    difference = scrapy.Field()
+    YoY = scrapy.Field()
+    cum_revenue = scrapy.Field()
+    cum_last_year = scrapy.Field()
+    cum_difference = scrapy.Field()
+    cum_YoY = scrapy.Field()
+    note = scrapy.Field()
 
+
+ 
 class InfoCrawlerItem(scrapy.Item):
-    code = scrapy.Field()
+    name = scrapy.Field()
+    symbol = scrapy.Field()
+    issue_date = scrapy.Field()
+    issue_time = scrapy.Field()
+    subject = scrapy.Field()
+    a = scrapy.Field()
+    b = scrapy.Field()
+    happen_date = scrapy.Field()
+    content = scrapy.Field()
+    c = scrapy.Field()
+    
 
 class FundamentalCrawlerItem(scrapy.Item):
     code = scrapy.Field()

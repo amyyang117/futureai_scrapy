@@ -22,42 +22,43 @@ class get_financial_statement(scrapy.Spider):
         yield scrapy.Request(self.url, self.parse_stock)
 
     def parse_stock(self, response, **kwargs):
-        # dfs = pd.read_html(StringIO(response.body.desymbol('utf-8')))
-        dfs = pd.read_html(StringIO(response.text))
-        df_concat = pd.DataFrame()
-        for i in range(3):
-            df = dfs[i].iloc[:, 1:3].copy()
-            df.columns = df.columns.droplevel(0)
-            df.columns = ['accounting', 'number']
-            df['accounting'] = df['accounting'].str.replace(r'\(|\)|\（|\）', '', regex=True)
-            df.insert(0, 'symbol', self.symbol)
-            df.insert(0, 'accounting_title', df['accounting'].apply(lambda x: self.split_cn_en(x)[-1]).str.replace('-', '_').str.replace(' ', '_').str.lower())
-            df['accounting_title'] = df['accounting_title'].str.replace(' ', '_')
-            df = df.dropna()
-            df_concat = pd.concat([df_concat, df])
+        try:
+            dfs = pd.read_html(StringIO(response.text))
+            df_concat = pd.DataFrame()
+            for i in range(3):
+                df = dfs[i].iloc[:, 1:3].copy()
+                df.columns = df.columns.droplevel(0)
+                df.columns = ['accounting', 'number']
+                df['accounting'] = df['accounting'].str.replace(r'\(|\)|\（|\）', '', regex=True)
+                df.insert(0, 'symbol', self.symbol)
+                df.insert(0, 'accounting_title', df['accounting'].apply(lambda x: self.split_cn_en(x)[-1]).str.replace('-', '_').str.replace(' ', '_').str.lower())
+                df['accounting_title'] = df['accounting_title'].str.replace(' ', '_')
+                df = df.dropna()
+                df_concat = pd.concat([df_concat, df])
 
+            df_concat['number'] = df_concat['number'].apply(self.convert_to_number_format)
+            df_data = pd.pivot_table(df_concat, values='number', index=['symbol'], columns='accounting_title', aggfunc='max')
+            value = df_data.reset_index().to_dict('records')
         
-        df_concat['number'] = df_concat['number'].apply(self.convert_to_number_format)
-        df_data = pd.pivot_table(df_concat, values='number', index=['symbol'], columns='accounting_title', aggfunc='max')
-        
-        value = df_data.reset_index().to_dict('records')
-        # table_name = self.split_cn_en(df.columns.get_level_values(0)[0])[-1].str.replace(' ','_').str.lower()
-        items = UniformCrawlerItem()
-        items['date'] = f"{self.year}-Q{self.quarter}"
-        items['parse_date'] = datetime.date.today()
-        items['table'] = 'financial_statement'
-        items['status'] = 'success' if response.status == 200 else 'error'
-        items['items'] = list()
+            items = UniformCrawlerItem()
+            items['date'] = f"{self.year}-Q{self.quarter}"
+            items['parse_date'] = datetime.date.today()
+            items['table'] = 'financial_statement'
+            items['status'] = 'success' if response.status == 200 else 'error'
+            items['items'] = list()
 
-        for data in value:
-            val = FinancialStatementCrawlerItem()
-            for k,v in data.items():
-                if k in FinancialStatementCrawlerItem.fields:  # Check if k is a field defined in FinancialStatementCrawlerItem
-                    val[k] = v
-            items['items'].append(dict(val))
-        
-        yield dict(items)
+            for data in value:
+                val = FinancialStatementCrawlerItem()
+                for k,v in data.items():
+                    if k in FinancialStatementCrawlerItem.fields:  # Check if k is a field defined in FinancialStatementCrawlerItem
+                        val[k] = v
+                items['items'].append(dict(val))
             
+            yield dict(items)
+            
+        except Exception as e:
+            logging.error(f"Error while parsing response for symbol {self.symbol}, year {self.year}, quarter {self.quarter}: {e}")
+        
 
     def split_cn_en(self, s):
         if '年' in s and '月' in s and '日' in s:
